@@ -46,7 +46,7 @@ int main(int argc, char const *argv[])
     }
     std::cout << "Running simulation for L = " << L << ", beta = " << beta << ", sigma = " << sigma << ", init = " << init << "\n";
     int N = 10000;                              // number of sweep
-    int M_sweep = L * L;                   // update per sweep
+    int M_sweep = 1*L * L;                   // update per sweep
     r2_Ising r2_ising_1d(L, beta, sigma, init); // create an instance of the r2_Ising class
 
     r2_ising_1d.run_simulation(N, M_sweep, folder, finfo); // run the simulation

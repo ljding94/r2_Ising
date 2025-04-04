@@ -162,7 +162,8 @@ int r2_Ising::MC_update_cluster()
         to_check.pop();
 
         // Iterate over all other sites
-        for (int j = 0; j < L; j++) {
+        for (int j = 0; j < L; j++)
+        {
             if (in_cluster[j]) continue; // already in cluster
             // Only consider spins with the same orientation
             if (Spins[j] != Spins[i]) continue;
@@ -223,26 +224,27 @@ observable r2_Ising::measure_observable()
 void r2_Ising::run_simulation(int N, int M_sweep, std::string folder, std::string finfo)
 {
     std::vector<observable> obs_ensemble;
-    int total_steps = N * M_sweep; // Total number of Monte Carlo steps
-    double acceptance_rate = 0.0;
-    for (int step = 0; step < total_steps; step++)
+    double acceptance_rate= 0.0;
+    double sweep_acc_rate = 0.0;
+    for (int n = 0; n < N; n++)
     {
-        acceptance_rate += MC_update_single(); // accumulate the number of accepted updates
-        //acceptance_rate += MC_update_cluster(); // accumulate the number of accepted cluster updates
-        // Record observables after each complete sweep (M_sweep steps)
-        if ((step + 1) % M_sweep == 0)
+        for (int m = 0; m < M_sweep; m++)
         {
-            obs_ensemble.push_back(measure_observable());
+            // Perform a single Metropolis update, accumulate acceptance rate
+            sweep_acc_rate += MC_update_single(); // accumulate the number of accepted updates
         }
+        acceptance_rate += sweep_acc_rate / (double)M_sweep; // acceptance rate for this sweep
+        obs_ensemble.push_back(measure_observable());
+
         // Print progress every 10% of the total steps
-        if (step % (total_steps / 10) == 0) {
-            std::cout << "Progress: " << (step * 100.0) / total_steps << "%" << std::endl;
+        if (n % (N / 10) == 0) {
+            std::cout << "Progress: " << (n * 100.0) / N << "%" << std::endl;
         }
     }
     std::cout<<obs_ensemble.size()<<" observables to save\n";
 
     std::cout<< "Final acceptance rate: "
-             << (double)acceptance_rate / (double)total_steps * 100.0
+             << (double)acceptance_rate / (double)N * 100.0
              << "%\n"; // Print the acceptance rate for debugging
 
     // Save observables and final configuration to files.
@@ -282,12 +284,11 @@ void r2_Ising::save_observable_to_file(std::string filename, std::vector<observa
         return;
     }
     std::cout<<obs_ensemble.size()<<" observables to save\n";
-    ofs << "m,m2,E\n"; // Header for the CSV file
-    for (size_t i = 0; i < obs_ensemble.size(); i++)
+    ofs << "m,E\n"; // Header for the CSV file
+    for (int i = 0; i < obs_ensemble.size(); i++)
     {
         // Write each observable to the file
         ofs << obs_ensemble[i].m << ","
-            << obs_ensemble[i].m2 << ","
             << obs_ensemble[i].E << "\n"; // format: m, m^2, E
     }
     ofs.close();

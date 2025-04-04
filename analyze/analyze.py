@@ -24,7 +24,7 @@ def analyze_time_series(folder, L, beta, sigma, init, run):
     steps = np.arange(len(df))
 
     # Create a figure with three subplots for m, m2, and E vs MC step
-    fig, axs = plt.subplots(3, 1, figsize=(8, 12), sharex=True)
+    fig, axs = plt.subplots(3, 1, figsize=(5, 8), sharex=True)
 
     axs[0].plot(steps, df['m'], 'b-')
     axs[0].set_ylabel('m')
@@ -85,7 +85,7 @@ def analyze_mean_magnetization(folder, L, betas, sigmas, init, run):
     ax2.set_xlabel(r'$T = 1/\beta$')
     ax2.set_ylabel(r'$\chi = <m^2> - <m>^2$')
     ax2.legend(title=r'$\sigma$', loc='upper right')
-
+    plt.tight_layout()
     output_fig = os.path.join(folder, "mean_magnetization_all.png")
     plt.savefig(output_fig)
     plt.close()

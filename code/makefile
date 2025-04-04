@@ -1,4 +1,4 @@
-Compile=g++ -g -std=c++20 -O3 # improve run time e.g. 10s to 4s
+Compile=g++ -g -std=c++2a -O3 # improve run time e.g. 10s to 4s
 r2_Ising: main.o r2_Ising.o
 	$(Compile) -o r2_Ising main.o r2_Ising.o
 main.o: main.cpp r2_Ising.h
