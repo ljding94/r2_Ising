@@ -1,12 +1,13 @@
 L=100
-beta=5.0
+T=1.0
 sigma=0.1
 init="random"
 run=0
-folder="/Users/ldq/Work/r2_Ising_RandH/data/data_local"
+folder="/Users/ldq/Work/r2_Ising_RandH/data/data_local/data_pool"
 
-for beta in 0.2 0.5 1.0 5.0 10.0 20.0 50.0; do
-    for sigma in 0.0 0.3; do
-        nohup ./r2_Ising $L $beta $sigma $init $run  $folder&
+#for beta in 0.5 1.0 2.0 4.0 6.0 8.0 10.0 20.0; do
+for T in 1.0 1.1 1.2 1.3 1.4 1.5 1.6 1.7; do
+    for sigma in 0.0; do
+        nohup ./r2_Ising $L $T $sigma $init $run  $folder&
     done
 done

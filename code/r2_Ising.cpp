@@ -38,7 +38,7 @@ r2_Ising::r2_Ising(int L_, double beta_, double sigma_, std::string init_)
         else if (init == "random")
         {
             // Random initialization: spins are either +1 or -1
-            Spins[i] = (rand_uni(gen) < 0.5) ? 1 : -1; // Randomly assign +1 or -1
+            Spins[i] = (rand_uni(gen) < 0.7) ? 1 : -1; // Randomly assign +1 or -1, biasing +1
         }
         else
         {
@@ -73,7 +73,7 @@ r2_Ising::r2_Ising(int L_, double beta_, double sigma_, std::string init_)
             int r_eff = std::min(r, L - r);
             if (r_eff > 0) // just to be safe
             {
-                Jij[i][j] = 1.0 / (r_eff * r_eff);
+                Jij[i][j] = 0.5 / (r_eff * r_eff);
             }
         }
     }
@@ -228,10 +228,12 @@ void r2_Ising::run_simulation(int N, int M_sweep, std::string folder, std::strin
     double sweep_acc_rate = 0.0;
     for (int n = 0; n < N; n++)
     {
+        sweep_acc_rate = 0;
         for (int m = 0; m < M_sweep; m++)
         {
             // Perform a single Metropolis update, accumulate acceptance rate
-            sweep_acc_rate += MC_update_single(); // accumulate the number of accepted updates
+            //sweep_acc_rate += MC_update_single(); // accumulate the number of accepted updates
+            sweep_acc_rate += MC_update_cluster(); // accumulate the number of accepted cluster updates
         }
         acceptance_rate += sweep_acc_rate / (double)M_sweep; // acceptance rate for this sweep
         obs_ensemble.push_back(measure_observable());

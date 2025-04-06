@@ -32,7 +32,7 @@ public:
     std::vector<double> hi; // random field, hi[i] = h(i), i.e. the random field at site i, size L
 
     std::vector<int> Spins;       // all Spins
-    double E_sys; // total energy of the system, E = -sum<ij> J(i,j) s_i s_j + sum_i h_i s_i
+    double E_sys; // total energy of the system, E = -sum<ij> J(i,j) s_i s_j + sum_i h_i s_i, J(i,j) = 0.5/(r_eff)^2, where r_eff = min(|i - j|, L - |i - j|)
 
     // randomnumber generators
     std::mt19937 gen;
