@@ -8,7 +8,7 @@
 #include <queue>
 
 // Constructor: initializes the 1D Ising model with 1/r^2 interactions and a random field.
-r2_Ising::r2_Ising(int L_, double beta_, double sigma_, std::string init_)
+r2_Ising::r2_Ising(int L_, double beta_, double sigma_, std::string method_)
 {
     L = L_;         // System size (L)
     beta = beta_;   // Inverse temperature
@@ -22,33 +22,21 @@ r2_Ising::r2_Ising(int L_, double beta_, double sigma_, std::string init_)
     rand_uni = rand_uni_;   // Uniform distribution for random numbers in [0, 1]
     rand_norm = rand_norm_; // Normal distribution for random fields
 
-    // Initialize spins
+    // initialize spins
     Spins.resize(L); // Resize the Spins vector to hold L elements
-    std::cout<<init<<"\n";
-    // Store the initialization type
-    init = init_;
+    // Store the methodialization type
+    method = method_;
 
     for (int i = 0; i < L; i++)
     {
-        if (init == "ordered")
-        {
-            // Ordered initialization: all spins up (+1)
-            Spins[i] = 1;
-        }
-        else if (init == "random")
-        {
-            // Random initialization: spins are either +1 or -1
-            Spins[i] = (rand_uni(gen) < 0.7) ? 1 : -1; // Randomly assign +1 or -1, biasing +1
-        }
-        else
-        {
-            std::cerr << "Unknown initialization type: " << init << "\n";
-            exit(EXIT_FAILURE);
-        }
+        // Random initialization: spins are either +1 or -1
+        Spins[i] = (rand_uni(gen) < 0.5) ? 1 : -1; // Randomly assign +1 or -1, biasing +1
     }
+
     // Print out the initialized Spins for debugging
     std::cout << "Initialized Spins: ";
-    for (int i = 0; i < L; i++) {
+    for (int i = 0; i < L; i++)
+    {
         std::cout << Spins[i] << " ";
     }
     std::cout << std::endl;
@@ -78,7 +66,7 @@ r2_Ising::r2_Ising(int L_, double beta_, double sigma_, std::string init_)
         }
     }
     // Print out the Jij interaction matrix for debugging
-    //std::cout << "Interaction matrix (Jij):" << std::endl;
+    // std::cout << "Interaction matrix (Jij):" << std::endl;
     /*
     for (int i = 0; i < L; i++) {
         for (int j = 0; j < L; j++) {
@@ -157,21 +145,25 @@ int r2_Ising::MC_update_cluster()
     to_check.push(seed);
 
     // Grow the cluster using the Wolff algorithm
-    while (!to_check.empty()) {
+    while (!to_check.empty())
+    {
         int i = to_check.front();
         to_check.pop();
 
         // Iterate over all other sites
         for (int j = 0; j < L; j++)
         {
-            if (in_cluster[j]) continue; // already in cluster
+            if (in_cluster[j])
+                continue; // already in cluster
             // Only consider spins with the same orientation
-            if (Spins[j] != Spins[i]) continue;
+            if (Spins[j] != Spins[i])
+                continue;
 
             // Calculate bond probability
             double p_add = 1.0 - std::exp(-2 * beta * Jij[i][j]);
 
-            if (rand_uni(gen) < p_add) {
+            if (rand_uni(gen) < p_add)
+            {
                 in_cluster[j] = true;
                 cluster.push_back(j);
                 to_check.push(j);
@@ -183,19 +175,24 @@ int r2_Ising::MC_update_cluster()
     // Field contribution: ΔE_field = 2 * sum_{i in cluster} hi[i] * s_i
     // Interaction contribution: ΔE_int = 2 * sum_{i in cluster, j not in cluster} Jij[i][j] * s_i * s_j
     double deltaE = 0.0;
-    for (int i : cluster) {
+    for (int i : cluster)
+    {
         deltaE += 2 * hi[i] * Spins[i];
-        for (int j = 0; j < L; j++) {
-            if (!in_cluster[j]) {
+        for (int j = 0; j < L; j++)
+        {
+            if (!in_cluster[j])
+            {
                 deltaE += 2 * Jij[i][j] * Spins[i] * Spins[j];
             }
         }
     }
 
     // Metropolis acceptance criterion for the cluster flip
-    if (deltaE <= 0 || rand_uni(gen) < std::exp(-beta * deltaE)) {
+    if (deltaE <= 0 || rand_uni(gen) < std::exp(-beta * deltaE))
+    {
         // Flip all spins in the cluster
-        for (int i : cluster) {
+        for (int i : cluster)
+        {
             Spins[i] = -Spins[i];
         }
         E_sys += deltaE;
@@ -214,8 +211,7 @@ observable r2_Ising::measure_observable()
     {
         sum_m += Spins[i];
     }
-    obs.m = sum_m/double(L); // Magnetization, m = sum(s_i) / L
-    obs.m2 = obs.m * obs.m; // m^2, used for susceptibility calculations
+    obs.m = sum_m / double(L); // Magnetization, m = sum(s_i) / L
     obs.E = E_sys;
     return obs;
 }
@@ -224,7 +220,7 @@ observable r2_Ising::measure_observable()
 void r2_Ising::run_simulation(int N, int M_sweep, std::string folder, std::string finfo)
 {
     std::vector<observable> obs_ensemble;
-    double acceptance_rate= 0.0;
+    double acceptance_rate = 0.0;
     double sweep_acc_rate = 0.0;
     for (int n = 0; n < N; n++)
     {
@@ -232,22 +228,34 @@ void r2_Ising::run_simulation(int N, int M_sweep, std::string folder, std::strin
         for (int m = 0; m < M_sweep; m++)
         {
             // Perform a single Metropolis update, accumulate acceptance rate
-            //sweep_acc_rate += MC_update_single(); // accumulate the number of accepted updates
-            sweep_acc_rate += MC_update_cluster(); // accumulate the number of accepted cluster updates
+            // sweep_acc_rate += MC_update_single(); // accumulate the number of accepted updates
+            if(method == "single")
+            {
+                sweep_acc_rate += MC_update_single();
+            }
+            else if(method == "cluster")
+            {
+                sweep_acc_rate += MC_update_cluster(); // accumulate the number of accepted
+            }
+            else
+            {
+                std::cerr << "Unknown method: " << method << "\n";
+            }
         }
         acceptance_rate += sweep_acc_rate / (double)M_sweep; // acceptance rate for this sweep
         obs_ensemble.push_back(measure_observable());
 
         // Print progress every 10% of the total steps
-        if (n % (N / 10) == 0) {
+        if (n % (N / 10) == 0)
+        {
             std::cout << "Progress: " << (n * 100.0) / N << "%" << std::endl;
         }
     }
-    std::cout<<obs_ensemble.size()<<" observables to save\n";
+    std::cout << obs_ensemble.size() << " observables to save\n";
 
-    std::cout<< "Final acceptance rate: "
-             << (double)acceptance_rate / (double)N * 100.0
-             << "%\n"; // Print the acceptance rate for debugging
+    std::cout << "Final acceptance rate: "
+              << (double)acceptance_rate / (double)N * 100.0
+              << "%\n"; // Print the acceptance rate for debugging
 
     // Save observables and final configuration to files.
     std::string obs_filename = folder + "/obs_" + finfo + ".txt";
@@ -285,7 +293,7 @@ void r2_Ising::save_observable_to_file(std::string filename, std::vector<observa
         std::cerr << "Error opening file " << filename << " for writing observable data.\n";
         return;
     }
-    std::cout<<obs_ensemble.size()<<" observables to save\n";
+    std::cout << obs_ensemble.size() << " observables to save\n";
     ofs << "m,E\n"; // Header for the CSV file
     for (int i = 0; i < obs_ensemble.size(); i++)
     {

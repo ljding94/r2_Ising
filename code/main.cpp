@@ -28,7 +28,7 @@ int main(int argc, char const *argv[])
     double T;
     double sigma;
     int run_num;
-    std::string init;
+    std::string method;
     // precision run with specified parameters
     if (argc == 7)
     {
@@ -36,20 +36,25 @@ int main(int argc, char const *argv[])
         T = std::atof(argv[2]);   // inverse temperature
         beta = 1.0 / T; // convert temperature to beta, beta = 1/T
         sigma = std::atof(argv[3]);  // random field strength
-        init = std::string(argv[4]); // initialization type, e.g., "random" or "ordered
+        method = std::string(argv[4]); // initialization type, e.g., "random" or "ordered
         run_num = std::atoi(argv[5]);
         folder = std::string(argv[6]);
-        finfo = "L" + std::string(argv[1]) + "_T" + std::string(argv[2]) + "_sigma" + std::string(argv[3]) + "_init" + init + "_run" + std::string(argv[5]); // filename info
+        finfo = "L" + std::string(argv[1]) + "_T" + std::string(argv[2]) + "_sigma" + std::string(argv[3]) + "_" + method + "_run" + std::string(argv[5]); // filename info
     }
     else
     {
         std::cout << "input error\n";
         return 0;
     }
-    std::cout << "Running simulation for L = " << L << ", T = " << T << ", sigma = " << sigma << ", init = " << init << "\n";
+    std::cout << "Running simulation for L = " << L << ", T = " << T << ", sigma = " << sigma << ", method = " << method << "\n";
     int N = 10000;                              // number of sweep
     int M_sweep = 10 * L;                   // update per sweep
-    r2_Ising r2_ising_1d(L, beta, sigma, init); // create an instance of the r2_Ising class
+    if(method == "single")
+    {
+        M_sweep = 10 * L * L;
+    }
+
+    r2_Ising r2_ising_1d(L, beta, sigma, method); // create an instance of the r2_Ising class
 
     r2_ising_1d.run_simulation(N, M_sweep, folder, finfo); // run the simulation
     std::cout << "Simulation completed. Results saved in folder: " << folder << "\n";

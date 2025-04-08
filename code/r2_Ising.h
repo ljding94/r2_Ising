@@ -11,7 +11,6 @@ struct observable
 {
     // geometric
     double m;      // magnetization, sum(s_i)/L
-    double m2;
     double E; // energy,
 };
 
@@ -27,7 +26,7 @@ public:
     int L;                             // system size, LxL
     double beta;                     // inverse temperature
     double sigma;                   // random field strength
-    std::string init; // initialization type, e.g., "random" or "ordered"
+    std::string method; // initialization type, e.g., "random" or "ordered"
     std::vector<std::vector<double>> Jij; // interaction matrix lookup, Jij[i][j] = J(i,j)
     std::vector<double> hi; // random field, hi[i] = h(i), i.e. the random field at site i, size L
 

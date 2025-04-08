@@ -49,36 +49,45 @@ def analyze_mean_magnetization(folder, L, Ts, sigmas, init, run):
     plt.figure(figsize=(4, 6))
     ax1 = plt.subplot(211)
     ax2 = plt.subplot(212)
-
+    print("Ts",Ts)
     for sigma in sigmas:
         T_vals = []
         mean_abs_m = []
+        std_abs_m = []  # To store the standard deviation of |m|
         chi_vals = []
 
         for T in Ts:
+            print("Analyzing T =", T, "for sigma =", sigma)  # Debugging statement to track the current T and sigma
             finfo = f"L{L:.0f}_T{T:.1f}_sigma{sigma:.1f}_init{init}_run{run}"
             filename = f"{folder}/obs_{finfo}.txt"
+            print(f"Analyzing file: {filename}")  # Debugging statement to check the filename being processed
             if not os.path.exists(filename):
                 print(f"File {filename} does not exist. Skipping T = {T} for sigma = {sigma}")
                 continue
             df = pd.read_csv(filename)
+            print(df)
             # Compute the average magnetization over MC steps
             # Skip first half of data for thermalization
             half_index = len(df) // 2
             abs_m = np.abs(df["m"].iloc[half_index:])  # Use the second half of the data for averaging
             abs_m_mean = abs_m.mean()  # This is <|m|>
+            abs_m_std = abs_m.std()  # Standard deviation of |m|, can be used for error bars if needed
             m2 = np.power(df["m"], 2)
             m2_mean = m2.iloc[half_index:].mean()
             chi = (m2_mean - abs_m_mean**2) / T
             T_vals.append(T)
             mean_abs_m.append(abs_m_mean)
+            std_abs_m.append(abs_m_std)  # Store the standard deviation of |m| for potential error bars
             chi_vals.append(chi)
+        N = half_index
 
-        # ax1.plot(1.0/np.array(T_vals), mean_m2_vals, 'o-', label=f'{sigma:.1f}')
+        # ax1.plot(1.0/np.array(T_vals), mfan_m2_vals, 'o-', label=f'{sigma:.1f}')
         print("np.array(mean_abs_m)**2", np.array(mean_abs_m) ** 2)
         print("chi_vals", chi_vals)
-        ax1.plot(T_vals, np.array(mean_abs_m) ** 2, "o-", label=f"{sigma:.1f}")
-        ax2.plot(T_vals, chi_vals, "o--", label=f"{sigma:.1f} ")
+        mean_abs_m = np.array(mean_abs_m)
+        std_abs_m = np.array(std_abs_m)
+        ax1.errorbar(T_vals, mean_abs_m ** 2, yerr=2*mean_abs_m*std_abs_m/np.sqrt(N/100), ls="-", marker="o", ms="3", label=f"{sigma:.1f}")
+        ax2.plot(T_vals, chi_vals, "o--", ms="3", label=f"{sigma:.1f} ")
 
     ax1.set_ylim(0, 1.1)
     ax1.set_xlabel(r"$T$")
@@ -94,22 +103,3 @@ def analyze_mean_magnetization(folder, L, Ts, sigmas, init, run):
     plt.close()
     print(f"Saved mean magnetization figure to {output_fig}")
 
-
-def main():
-    # Example usage: specify the data folder and lists of T and sigma values
-    # Adjust these lists as needed
-    folder = "data"  # Folder where the observable files are stored
-    Ts = [0.5, 1.0, 1.5, 2.0]  # List of inverse temperature values
-    sigmas = [0.1, 0.5]  # List of random field strengths
-
-    # Create time series figures for each combination of T and sigma
-    for sigma in sigmas:
-        for T in Ts:
-            analyze_time_series(folder, T, sigma)
-
-    # Create mean magnetization plot for each sigma
-    analyze_mean_magnetization(folder, Ts, sigmas)
-
-
-if __name__ == "__main__":
-    main()
