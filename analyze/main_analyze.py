@@ -24,12 +24,12 @@ def main():
         analyze_mean_magnetization(folder, L, Ts, sigmas, init, run)
 
     if 1:
-        folder = "../data/20250406"
+        folder = "../data/20250407"
         L = 100
         Ts = np.arange(0.1, 2.51, 0.1)
         print("Ts", Ts)
         sigmas = np.arange(0.0, 0.91, 0.1)
-        init = "random"
+        method = "single"
         run = 0
         # Create time series figures for each combination of beta and sigma
         for sigma in sigmas:
@@ -39,7 +39,7 @@ def main():
 
         # Create mean magnetization plot for each sigma
         print("Ts1", Ts)
-        analyze_mean_magnetization(folder, L, Ts, sigmas, init, run)
+        analyze_mean_magnetization(folder, L, Ts, sigmas, method, run)
 
 
 if __name__ == "__main__":

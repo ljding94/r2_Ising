@@ -6,12 +6,14 @@
 #include <vector>
 #include <string>
 #include <queue>
+#include <algorithm>
 
 // Constructor: initializes the 1D Ising model with 1/r^2 interactions and a random field.
-r2_Ising::r2_Ising(int L_, double beta_, double sigma_, std::string method_)
+r2_Ising::r2_Ising(int L_, double Ti_, double Tf_, int nT_, double sigma_, std::string method_)
 {
-    L = L_;         // System size (L)
-    beta = beta_;   // Inverse temperature
+    L = L_; // System size (L)
+    T = Ti_;
+    beta = 1.0 / T; // Inverse temperature
     sigma = sigma_; // Random field strength
     // Seed the generator
     std::random_device rd;
@@ -32,14 +34,6 @@ r2_Ising::r2_Ising(int L_, double beta_, double sigma_, std::string method_)
         // Random initialization: spins are either +1 or -1
         Spins[i] = (rand_uni(gen) < 0.5) ? 1 : -1; // Randomly assign +1 or -1, biasing +1
     }
-
-    // Print out the initialized Spins for debugging
-    std::cout << "Initialized Spins: ";
-    for (int i = 0; i < L; i++)
-    {
-        std::cout << Spins[i] << " ";
-    }
-    std::cout << std::endl;
 
     // Initialize random fields hi from a normal distribution with standard deviation sigma
     hi.resize(L);
@@ -65,18 +59,7 @@ r2_Ising::r2_Ising(int L_, double beta_, double sigma_, std::string method_)
             }
         }
     }
-    // Print out the Jij interaction matrix for debugging
-    // std::cout << "Interaction matrix (Jij):" << std::endl;
-    /*
-    for (int i = 0; i < L; i++) {
-        for (int j = 0; j < L; j++) {
-            std::cout << Jij[i][j] << "\t";
-        }
-        std::cout << std::endl;
-    }
-    */
 
-    // Compute the initial system energy E_sys.
     // Sum over pairs i<j for interactions and add the field contributions.
     E_sys = 0.0;
     for (int i = 0; i < L; i++)
@@ -87,6 +70,34 @@ r2_Ising::r2_Ising(int L_, double beta_, double sigma_, std::string method_)
         }
         E_sys += hi[i] * Spins[i];
     }
+
+    // initilize all replicas
+    nT = nT_;
+    T_replicas.resize(nT);
+    beta_replicas.resize(nT);
+    Spins_replicas.resize(nT);
+    E_sys_replicas.resize(nT);
+    T_replicas[0] = Ti_;
+    beta_replicas[0] = 1.0 / T_replicas[0];
+    double T_step = std::pow((Tf_ / Ti_), 1.0 / (nT - 1));
+
+    for (int i = 1; i < nT; i++)
+    {
+        T_replicas[i] = T_replicas[i - 1] * T_step;
+        beta_replicas[i] = 1.0 / T_replicas[i];
+    }
+
+    for (int i = 0; i < nT; i++)
+    {
+        Spins_replicas[i] = Spins;
+        E_sys_replicas[i] = E_sys;
+    }
+    std::cout << "T_replicas: ";
+    for (int i = 0; i < nT; i++)
+    {
+        std::cout << T_replicas[i] << ",";
+    }
+    std::cout << "\n";
 }
 
 // MC_update: Performs one Metropolis update by attempting to flip a randomly selected spin.
@@ -229,11 +240,11 @@ void r2_Ising::run_simulation(int N, int M_sweep, std::string folder, std::strin
         {
             // Perform a single Metropolis update, accumulate acceptance rate
             // sweep_acc_rate += MC_update_single(); // accumulate the number of accepted updates
-            if(method == "single")
+            if (method == "single")
             {
                 sweep_acc_rate += MC_update_single();
             }
-            else if(method == "cluster")
+            else if (method == "cluster")
             {
                 sweep_acc_rate += MC_update_cluster(); // accumulate the number of accepted
             }
@@ -302,4 +313,167 @@ void r2_Ising::save_observable_to_file(std::string filename, std::vector<observa
             << obs_ensemble[i].E << "\n"; // format: m, m^2, E
     }
     ofs.close();
+}
+
+int r2_Ising::MC_update_single_replica(int rep)
+{
+
+    // Select a random site i
+    int i = rand_uni(gen) * L; // Randomly select a spin index in the range [0, L-1]
+    int s_old = Spins_replicas[rep][i];
+    int s_new = -s_old;
+
+    // Compute the energy change ΔE if spin i is flipped.
+    double deltaE = 2 * s_old * hi[i];
+    for (int j = 0; j < L; j++)
+    {
+        if (j == i)
+            continue;
+        deltaE += 2 * s_old * Jij[i][j] * Spins_replicas[rep][j];
+    }
+
+    // Metropolis acceptance criterion
+    if (deltaE <= 0 || rand_uni(gen) < std::exp(-beta_replicas[rep] * deltaE)) // to accelerate, no need to draw random number if deltaE <= 0
+    {
+        Spins_replicas[rep][i] = s_new;
+        E_sys_replicas[rep] += deltaE;
+        return 1;
+    }
+    return 0;
+}
+
+// Returns the number of accepted exchanges.
+int r2_Ising::MC_replica_exchange()
+{
+    int numAccepted = 0;
+    // Assuming beta_replicas.size() is the number of replicas.
+    int numReplicas = beta_replicas.size();
+    // Loop over adjacent pairs of replicas.
+    for (int i = 0; i < numReplicas - 1; i++)
+    {
+        // Calculate the acceptance probability:
+        // Δ = (β_i - β_j) * (E_i - E_j)
+        double delta = (beta_replicas[i] - beta_replicas[i + 1]) *
+                       (E_sys_replicas[i] - E_sys_replicas[i + 1]);
+        double swapProb = std::min(1.0, std::exp(delta));
+        double r = rand_uni(gen);
+        if (r < swapProb)
+        {
+            // Swap the configurations (Spins and energy) between replica i and i+1.
+            std::swap(Spins_replicas[i], Spins_replicas[i + 1]);
+            std::swap(E_sys_replicas[i], E_sys_replicas[i + 1]);
+            numAccepted++;
+        }
+    }
+    return numAccepted;
+}
+
+observable r2_Ising::measure_observable_replica(int rep)
+{
+    observable obs;
+    int sum_m = 0;
+    for (int i = 0; i < L; i++)
+    {
+        sum_m += Spins_replicas[rep][i];
+    }
+    obs.m = sum_m / double(L); // Magnetization, m = sum(s_i) / L
+    obs.E = E_sys_replicas[rep];
+    return obs;
+}
+
+void r2_Ising::run_parallel_simulation(int N, int M_sweep, std::string folder, std::string finfo)
+{
+    int numReplicas = beta_replicas.size();
+
+    // TODO: need to implement the following, need to check
+    // Optionally, prepare observables storage for each replica.
+    std::vector<std::vector<observable>> obs_ensemble_replica(numReplicas);
+
+    std::vector<double> acceptance_rates(numReplicas, 0.0);
+    // Main loop over Monte Carlo sweeps.
+    double acceptance_rate_swap = 0.0;
+    for (int sweep = 0; sweep < N; ++sweep)
+    {
+        // For each replica, perform M_sweep MC update steps.
+        for (int rep = 0; rep < numReplicas; ++rep)
+        {
+            double acceptance_rate_sweep = 0;
+            for (int step = 0; step < M_sweep; ++step)
+            {
+
+                // Example pseudo-code:
+                std::vector<int> currentSpins = Spins_replicas[rep];
+                double currentE = E_sys_replicas[rep];
+                acceptance_rate_sweep += MC_update_single_replica(rep);
+            }
+            acceptance_rates[rep] += acceptance_rate_sweep / M_sweep; // Average acceptance rate for this replica
+            // Optionally measure and store obs_ensemble_replica for this replica.
+            obs_ensemble_replica[rep].push_back(measure_observable_replica(rep));
+        }
+
+        // Attempt replica exchanges among all replicas.
+        acceptance_rate_swap += MC_replica_exchange();
+        // Print progress every 10% of the total steps
+        if (sweep % (N / 10) == 0)
+        {
+            std::cout << "Progress: " << (sweep * 100.0) / N << "%" << std::endl;
+        }
+    }
+    // (numReplicas-1) swap attempt per exchange update
+    std::cout << "swap acceprance rate: "
+              << (acceptance_rate_swap / N / (numReplicas - 1) * 100.0) << "%\n";
+    for (int rep = 0; rep < numReplicas; ++rep)
+    {
+        std::cout << "Replica " << rep << " final acceptance rate: "
+                  << (acceptance_rates[rep] / N * 100.0) << "%" << std::endl;
+    }
+
+    // At the end of the simulation, write the results to files.
+    save_parallel_observable_to_file(folder, finfo, obs_ensemble_replica); // example for one replica
+}
+void r2_Ising::save_parallel_observable_to_file(std::string folder, std::string finfo, std::vector<std::vector<observable>> obs_ensemble_replicas)
+{
+    std::string filename = folder + "/parallel_obs_" + finfo + ".txt";
+    std::ofstream ofs(filename);
+    if (!ofs)
+    {
+        std::cerr << "Error opening file " << filename << " for writing parallel observable data.\n";
+        return;
+    }
+
+    int numReplicas = obs_ensemble_replicas.size();
+    int numSteps = obs_ensemble_replicas[0].size();
+
+    // Write header line with temperatures
+    ofs << "T";
+    for (int rep = 0; rep < numReplicas; ++rep)
+    {
+        ofs << "," << T_replicas[rep];
+    }
+    ofs << "\n";
+
+    // Write column headers
+    for (int rep = 0; rep < numReplicas; ++rep)
+    {
+        ofs << "m_" << rep << ",E_" << rep;
+        if (rep < numReplicas - 1)
+            ofs << ",";
+    }
+    ofs << "\n";
+
+    // Write data - each row corresponds to one MC step
+    for (int step = 0; step < numSteps; ++step)
+    {
+        for (int rep = 0; rep < numReplicas; ++rep)
+        {
+            ofs << obs_ensemble_replicas[rep][step].m << ","
+                << obs_ensemble_replicas[rep][step].E;
+            if (rep < numReplicas - 1)
+                ofs << ",";
+        }
+        ofs << "\n";
+    }
+
+    ofs.close();
+    std::cout << "Saved observables for " << numReplicas << " replicas over " << numSteps << " steps to " << filename << std::endl;
 }
