@@ -411,8 +411,12 @@ void r2_Ising::run_parallel_simulation(int N, int M_sweep, std::string folder, s
             obs_ensemble_replica[rep].push_back(measure_observable_replica(rep));
         }
 
-        // Attempt replica exchanges among all replicas.
-        acceptance_rate_swap += MC_replica_exchange();
+        // Attempt replica exchanges among all replicas every 10 sweeps
+        if(sweep % 10 == 1)
+        {
+            acceptance_rate_swap += MC_replica_exchange();
+        }
+
         // Print progress every 10% of the total steps
         if (sweep % (N / 10) == 0)
         {
@@ -425,7 +429,7 @@ void r2_Ising::run_parallel_simulation(int N, int M_sweep, std::string folder, s
     for (int rep = 0; rep < numReplicas; ++rep)
     {
         std::cout << "Replica " << rep << " final acceptance rate: "
-                  << (acceptance_rates[rep] / N * 100.0) << "%" << std::endl;
+                  << (acceptance_rates[rep] * 10 / N * 100.0) << "%" << std::endl;
     }
 
     // At the end of the simulation, write the results to files.

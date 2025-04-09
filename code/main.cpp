@@ -62,7 +62,7 @@ int main(int argc, char const *argv[])
     int M_sweep = 10 * L; // update per sweep
     if (method == "single")
     {
-        M_sweep = 10 * L * L;
+        M_sweep = 100 * L * L;
     }
 
     r2_Ising r2_ising_1d(L, Ti, Tf, nT, sigma, method); // create an instance of the r2_Ising class

@@ -23,7 +23,7 @@ def main():
         # Create mean magnetization plot for each sigma
         analyze_mean_magnetization(folder, L, Ts, sigmas, init, run)
 
-    if 1:
+    if 0:
         folder = "../data/20250407"
         L = 100
         Ts = np.arange(0.1, 2.51, 0.1)
@@ -40,6 +40,19 @@ def main():
         # Create mean magnetization plot for each sigma
         print("Ts1", Ts)
         analyze_mean_magnetization(folder, L, Ts, sigmas, method, run)
+
+    if 1:
+
+        folder = "../data/20250408"
+        L = 100
+        Ti = 0.05
+        Tf = 2.0
+        nT = 20
+        sigmas = np.arange(0.0, 0.91, 0.1)
+        method = "single"
+        run = 0
+        # Create mean magnetization plot for each sigma
+        analyze_parallel_mean_magnetization(folder, L, Ti, Tf, nT, sigmas, method, run)
 
 
 if __name__ == "__main__":
