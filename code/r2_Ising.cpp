@@ -389,7 +389,7 @@ observable r2_Ising::measure_observable_replica(int rep)
     return obs;
 }
 
-void r2_Ising::run_parallel_simulation(int N, int M_sweep, std::string folder, std::string finfo)
+void r2_Ising::run_parallel_simulation(int N, int M_sweep, std::string folder, std::string finfo, int doswap)
 {
     int numReplicas = beta_replicas.size();
 
@@ -420,7 +420,7 @@ void r2_Ising::run_parallel_simulation(int N, int M_sweep, std::string folder, s
         }
 
         // Attempt replica exchanges among all replicas every 10 sweeps
-        if(sweep % 10 == 1)
+        if(doswap && sweep % 10 == 1 )
         {
             acceptance_rate_swap += MC_replica_exchange();
         }

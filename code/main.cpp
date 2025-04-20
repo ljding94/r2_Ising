@@ -29,8 +29,9 @@ int main(int argc, char const *argv[])
     double sigma;
     int run_num;
     std::string method;
+    int doswap;
     // precision run with specified parameters
-    if (argc == 9)
+    if (argc == 10)
     {
         L = std::atoi(argv[1]);        // system size
         Ti = std::atof(argv[2]);       // starting temperature
@@ -38,14 +39,15 @@ int main(int argc, char const *argv[])
         nT = std::atoi(argv[4]);       // number of temperature steps
         sigma = std::atof(argv[5]);    // random field strength
         method = std::string(argv[6]);
+        doswap = std::atoi(argv[7]);
 
-        run_num = std::atoi(argv[7]);
-        folder = std::string(argv[8]);
+        run_num = std::atoi(argv[8]);
+        folder = std::string(argv[9]);
         finfo = "L" + std::string(argv[1]) + "_Ti" + std::string(argv[2]) +
                 "_Tf" + std::string(argv[3]) + "_nT" + std::to_string(nT) +
                 "_sigma" + std::string(argv[5]) +
-                "_method_" + method +
-                "_run_" + std::string(argv[7]);
+                "_method_" + method + "_doswap" + std::to_string(doswap) +
+                "_run_" + std::string(argv[8]);
     }
     else
     {
@@ -74,7 +76,7 @@ int main(int argc, char const *argv[])
         r2_ising_1d.run_simulation(N, M_sweep, folder, finfo); // run the simulation
         std::cout << "Simulation completed. Results saved in folder: " << folder << "\n";
     } else {
-        r2_ising_1d.run_parallel_simulation(N, M_sweep, folder, finfo);
+        r2_ising_1d.run_parallel_simulation(N, M_sweep, folder, finfo, doswap);
         std::cout << "Parallel simulation completed. Results saved in folder: " << folder << "\n";
     }
 

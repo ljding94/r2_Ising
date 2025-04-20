@@ -62,7 +62,7 @@ public:
     int MC_update_single_replica(int rep);
     observable measure_observable_replica(int rep);
     int MC_replica_exchange();
-    void run_parallel_simulation(int N, int M_sweep, std::string folder, std::string finfo);
+    void run_parallel_simulation(int N, int M_sweep, std::string folder, std::string finfo, int doswap);
 
     void save_parallel_observable_to_file(std::string folder, std::string finfo, std::vector<std::vector<observable>> obs_ensemble_replicas);
 
