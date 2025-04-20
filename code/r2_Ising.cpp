@@ -29,18 +29,19 @@ r2_Ising::r2_Ising(int L_, double Ti_, double Tf_, int nT_, double sigma_, std::
     // Store the methodialization type
     method = method_;
 
-    for (int i = 0; i < L; i++)
-    {
-        // Random initialization: spins are either +1 or -1
-        Spins[i] = (rand_uni(gen) < 0.5) ? 1 : -1; // Randomly assign +1 or -1, biasing +1
-    }
-
     // Initialize random fields hi from a normal distribution with standard deviation sigma
     hi.resize(L);
     for (int i = 0; i < L; i++)
     {
         hi[i] = sigma * rand_norm(gen);
     }
+
+    for (int i = 0; i < L; i++)
+    {
+        // initialize spins to aline with the field and add a small bias
+        Spins[i] = (rand_uni(gen) < 0.6)? 1: -1;
+    }
+
 
     // Initialize interaction matrix Jij (using periodic boundary conditions)
     // Jij[i][j] = 1/(r_eff)^2, where r_eff = min(|i - j|, L - |i - j|)
@@ -55,20 +56,25 @@ r2_Ising::r2_Ising(int L_, double Ti_, double Tf_, int nT_, double sigma_, std::
             int r_eff = std::min(r, L - r);
             if (r_eff > 0) // just to be safe
             {
-                Jij[i][j] = 0.5 / (r_eff * r_eff);
+                Jij[i][j] = 1.0 / (r_eff * r_eff);
             }
         }
     }
 
+    // E = 1/2 * sum_ij J(i,j) (s_i-s_j)^2 - sum_i h_i s_i
+    // E = 1/2 * sum_ij J(i,j) (s_i^2 + s_j^2 - 2 s_i s_j) - sum_i h_i s_i
+    // E = sum_ij J(i,j) (1 - s_i s_j) - sum_i h_i s_i
+
+
     // Sum over pairs i<j for interactions and add the field contributions.
     E_sys = 0.0;
-    for (int i = 0; i < L; i++)
+    for (int i = 0; i < L-1; i++)
     {
         for (int j = i + 1; j < L; j++)
         {
-            E_sys += Jij[i][j] * Spins[i] * Spins[j];
+            E_sys += Jij[i][j] * (1- Spins[i] * Spins[j]);
         }
-        E_sys += hi[i] * Spins[i];
+        E_sys += - hi[i] * Spins[i];
     }
 
     // initilize all replicas
@@ -156,6 +162,7 @@ int r2_Ising::MC_update_cluster()
     to_check.push(seed);
 
     // Grow the cluster using the Wolff algorithm
+    double p_add;
     while (!to_check.empty())
     {
         int i = to_check.front();
@@ -171,7 +178,8 @@ int r2_Ising::MC_update_cluster()
                 continue;
 
             // Calculate bond probability
-            double p_add = 1.0 - std::exp(-2 * beta * Jij[i][j]);
+            //p_add = 1.0 - std::exp(-2 * beta * Jij[i][j]);
+            p_add = 1.0 - std::exp(-2 * beta * Jij[i][j] - 2 * beta * hi[j] * Spins[j]); // H adjusted
 
             if (rand_uni(gen) < p_add)
             {

@@ -41,18 +41,29 @@ def main():
         print("Ts1", Ts)
         analyze_mean_magnetization(folder, L, Ts, sigmas, method, run)
 
-    if 1:
+    if 0:
 
-        folder = "../data/20250408"
+        folder = "../data/20250409"
         L = 100
         Ti = 0.05
         Tf = 2.0
         nT = 20
-        sigmas = np.arange(0.0, 0.91, 0.1)
+        sigmas = np.arange(0.05, 1.01, 0.05)
         method = "single"
         run = 0
         # Create mean magnetization plot for each sigma
         analyze_parallel_mean_magnetization(folder, L, Ti, Tf, nT, sigmas, method, run)
+
+    if 1:
+        folder = "../data/20250412"
+        L = 100
+        Ti = 0.01
+        Tf = 2.0
+        nT = 25
+        sigmas = np.arange(0.05, 1.01, 0.05)
+        method = "single"
+        Mrun = 20
+        analyze_parallel_mean_magnetization_multirun(folder, L, Ti, Tf, nT, sigmas, method, Mrun)
 
 
 if __name__ == "__main__":

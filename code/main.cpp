@@ -38,6 +38,7 @@ int main(int argc, char const *argv[])
         nT = std::atoi(argv[4]);       // number of temperature steps
         sigma = std::atof(argv[5]);    // random field strength
         method = std::string(argv[6]);
+
         run_num = std::atoi(argv[7]);
         folder = std::string(argv[8]);
         finfo = "L" + std::string(argv[1]) + "_Ti" + std::string(argv[2]) +
@@ -62,13 +63,14 @@ int main(int argc, char const *argv[])
     int M_sweep = 10 * L; // update per sweep
     if (method == "single")
     {
-        M_sweep = 100 * L * L;
+        M_sweep = 10 * L * L;
     }
 
     r2_Ising r2_ising_1d(L, Ti, Tf, nT, sigma, method); // create an instance of the r2_Ising class
 
     if (nT == 1)
     {
+        // will run single temperature simulation with T = Ti
         r2_ising_1d.run_simulation(N, M_sweep, folder, finfo); // run the simulation
         std::cout << "Simulation completed. Results saved in folder: " << folder << "\n";
     } else {
