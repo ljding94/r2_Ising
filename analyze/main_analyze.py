@@ -55,15 +55,16 @@ def main():
         analyze_parallel_mean_magnetization(folder, L, Ti, Tf, nT, sigmas, method, run)
 
     if 1:
-        folder = "../data/20250412"
+        folder = "../data/20250419"
         L = 100
-        Ti = 0.01
-        Tf = 2.0
+        Ti = 0.02
+        Tf = 2.50
         nT = 25
-        sigmas = np.arange(0.05, 1.01, 0.05)
+        sigmas = np.arange(0.05, 0.51, 0.05)
         method = "single"
-        Mrun = 20
-        analyze_parallel_mean_magnetization_multirun(folder, L, Ti, Tf, nT, sigmas, method, Mrun)
+        doswap = 0
+        Mrun = 40
+        analyze_parallel_mean_magnetization_multirun(folder, L, Ti, Tf, nT, sigmas, method, doswap, Mrun)
 
 
 if __name__ == "__main__":

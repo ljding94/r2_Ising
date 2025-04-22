@@ -181,7 +181,7 @@ def analyze_parallel_mean_magnetization(folder, L, Ti, Tf, nT, sigmas, method, r
     print(f"Saved mean magnetization figure to {output_fig}")
 
 
-def get_multi_run_data(folder, L, Ti, Tf, nT, sigma, method, Mrun):
+def get_multi_run_data(folder, L, Ti, Tf, nT, sigma, method, doswap, Mrun):
     # return mean_m2, std_m2, mean_E, std_E, mean_chi, std_chi versus all T
 
     T_vals = np.geomspace(Ti, Tf, nT)
@@ -189,7 +189,7 @@ def get_multi_run_data(folder, L, Ti, Tf, nT, sigma, method, Mrun):
     all_E_mean = []
     all_chi_mean = []
     for run in range(Mrun):
-        finfo = f"L{L:.0f}_Ti{Ti:.2f}_Tf{Tf:.2f}_nT{nT:.0f}_sigma{sigma:.2f}_method_{method}_run_{run}"
+        finfo = f"L{L:.0f}_Ti{Ti:.2f}_Tf{Tf:.2f}_nT{nT:.0f}_sigma{sigma:.2f}_method_{method}_doswap{doswap}_run_{run}"
         filename = f"{folder}/parallel_obs_{finfo}.txt"
         print(f"Analyzing file: {filename}")
 
@@ -218,7 +218,7 @@ def get_multi_run_data(folder, L, Ti, Tf, nT, sigma, method, Mrun):
     return T_vals, all_abs_m2_mean, all_E_mean, all_chi_mean
 
 
-def analyze_parallel_mean_magnetization_multirun(folder, L, Ti, Tf, nT, sigmas, method, Mrun):
+def analyze_parallel_mean_magnetization_multirun(folder, L, Ti, Tf, nT, sigmas, method, doswap, Mrun):
     plt.figure(figsize=(6, 12))
     ax1 = plt.subplot(311)
     ax2 = plt.subplot(312)
@@ -228,7 +228,7 @@ def analyze_parallel_mean_magnetization_multirun(folder, L, Ti, Tf, nT, sigmas, 
 
     for idx, sigma in enumerate(sigmas):
         color = colors[idx]
-        T_vals, all_abs_m2_mean, all_E_mean, all_chi_mean = get_multi_run_data(folder, L, Ti, Tf, nT, sigma, method, Mrun)
+        T_vals, all_abs_m2_mean, all_E_mean, all_chi_mean = get_multi_run_data(folder, L, Ti, Tf, nT, sigma, method, doswap, Mrun)
 
         ax1.errorbar(T_vals, np.mean(all_abs_m2_mean, axis=0), yerr=np.std(all_abs_m2_mean, axis=0) / np.sqrt(Mrun), ls="-", marker="o", ms="3", color=color, label=f"{sigma:.2f}")
         ax2.errorbar(T_vals, np.mean(all_chi_mean, axis=0), yerr=np.std(all_chi_mean, axis=0) / np.sqrt(Mrun), ls="--", marker="o", ms="3", color=color, label=f"{sigma:.2f}")

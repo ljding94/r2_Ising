@@ -39,7 +39,8 @@ r2_Ising::r2_Ising(int L_, double Ti_, double Tf_, int nT_, double sigma_, std::
     for (int i = 0; i < L; i++)
     {
         // initialize spins to aline with the field and add a small bias
-        Spins[i] = (rand_uni(gen) < 0.6)? 1: -1;
+        //Spins[i] = (rand_uni(gen) < 0.6)? 1: -1;
+        Spins[i] = 1; // initialize all spins to +1
     }
 
 
