@@ -86,6 +86,14 @@ r2_Ising::r2_Ising(int L_, double Ti_, double Tf_, int nT_, double sigma_, std::
     E_sys_replicas.resize(nT);
     T_replicas[0] = Ti_;
     beta_replicas[0] = 1.0 / T_replicas[0];
+
+    double T_step = (Tf_ - Ti_) / (nT - 1);
+    for (int i = 1; i < nT; i++)
+    {
+        T_replicas[i] = T_replicas[i - 1] + T_step;
+        beta_replicas[i] = 1.0 / T_replicas[i];
+    }
+    /*
     double T_step = std::pow((Tf_ / Ti_), 1.0 / (nT - 1));
 
     for (int i = 1; i < nT; i++)
@@ -93,6 +101,7 @@ r2_Ising::r2_Ising(int L_, double Ti_, double Tf_, int nT_, double sigma_, std::
         T_replicas[i] = T_replicas[i - 1] * T_step;
         beta_replicas[i] = 1.0 / T_replicas[i];
     }
+        */
 
     for (int i = 0; i < nT; i++)
     {
