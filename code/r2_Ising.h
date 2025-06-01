@@ -26,6 +26,7 @@ public:
     int L;                             // system size, LxL
     double T;                     // inverse temperature
     double beta;
+    double Hmu; // uniform field strength, Hmu = h_i for all i
     double sigma;                   // random field strength
     std::string method; // initialization type, e.g., "random" or "ordered"
     std::vector<std::vector<double>> Jij; // interaction matrix lookup, Jij[i][j] = J(i,j)
@@ -40,7 +41,7 @@ public:
     std::normal_distribution<> rand_norm;      // normal distribution
 
     // initialization
-    r2_Ising(int L_, double Ti_, double Tf_, int nT_,  double sigma_, std::string init_);
+    r2_Ising(int L_, double Ti_, double Tf_, int nT_,  double Hmu,  double sigma_, std::string init_);
 
     int MC_update_single();
     int MC_update_cluster();
@@ -62,9 +63,9 @@ public:
     int MC_update_single_replica(int rep);
     observable measure_observable_replica(int rep);
     int MC_replica_exchange();
-    void run_parallel_simulation(int N, int M_sweep, std::string folder, std::string finfo, int doswap);
+    void run_parallel_simulation(int N, int M_sweep, int sdetail, std::string folder, std::string finfo, int doswap);
 
-    void save_parallel_observable_to_file(std::string folder, std::string finfo, std::vector<std::vector<observable>> obs_ensemble_replicas);
+    void save_parallel_observable_to_file(int sdetail, std::string folder, std::string finfo, std::vector<std::vector<observable>> obs_ensemble_replicas);
 
 };
 #endif

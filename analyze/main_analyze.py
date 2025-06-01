@@ -54,18 +54,66 @@ def main():
         # Create mean magnetization plot for each sigma
         analyze_parallel_mean_magnetization(folder, L, Ti, Tf, nT, sigmas, method, run)
 
-    if 1:
-        folder = "../data/20250419"
+    if 0:
+        folder = "../data/20250429"
         L = 100
         Ti = 0.02
         Tf = 2.50
-        nT = 25
-        sigmas = np.arange(0.05, 0.51, 0.05)
+        nT = 100
+        sigmas = np.arange(0.10, 1.01, 0.05)
         method = "single"
         doswap = 0
-        Mrun = 40
-        analyze_parallel_mean_magnetization_multirun(folder, L, Ti, Tf, nT, sigmas, method, doswap, Mrun)
+        Mrun = 50
+        analyze_parallel_mean_magnetization_multirun_per_sigma(folder, L, Ti, Tf, nT, sigmas, method, doswap, Mrun)
 
+    if 1:
+        #folder = "../data/20250430"
+        #folder = "../data/20250519"
+        folder = "../data/20250522"
+        Ls = np.arange(300, 381, 20)
+        #Ti = 0.02
+        #Tf = 0.50
+        #nT = 20
+        Ti = 1.60
+        Tf = 2.20
+        nT = 20
+
+        sigma = 0.20
+        method = "single"
+        doswap = 0
+        Mrun = 50
+        analyze_parallel_mean_magnetization_multirun_per_L(folder, Ls, Ti, Tf, nT, sigma, method, doswap, Mrun)
+
+    if 0:
+        folder = "../data/20250430"
+        L = 100
+        Ti = 0.02
+        Tf = 0.50
+        nT = 20
+        sigma = 0.20
+        method = "single"
+        doswap = 0
+        for run in range(20):
+            analyze_parallel_time_series(folder, L, Ti, Tf, nT, sigma, method, doswap, run)
+
+    if 0:
+        # histogram of E and m2
+        folder = "../data/20250430"
+        Ls = np.arange(60, 401, 20)
+        #Ls = [60, 120, 240, 360, 400]
+        Ti = 0.02
+        Tf = 0.50
+        nT = 20
+        sigma = 0.20
+        method = "single"
+        doswap = 0
+        Mrun = 50
+        #analyze_parallel_histgram(folder, Ls, Ti, Tf, nT, sigma, method, doswap, Mrun)
+        analyze_parallel_histgram_perT(folder, Ls, Ti, Tf, nT, sigma, method, doswap, Mrun)
+
+
+
+#TODO: add a plot for the m vs. steps
 
 if __name__ == "__main__":
     main()

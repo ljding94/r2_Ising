@@ -9,11 +9,12 @@
 #include <algorithm>
 
 // Constructor: initializes the 1D Ising model with 1/r^2 interactions and a random field.
-r2_Ising::r2_Ising(int L_, double Ti_, double Tf_, int nT_, double sigma_, std::string method_)
+r2_Ising::r2_Ising(int L_, double Ti_, double Tf_, int nT_, double Hmu_, double sigma_, std::string method_)
 {
     L = L_; // System size (L)
     T = Ti_;
     beta = 1.0 / T; // Inverse temperature
+    Hmu = Hmu_;     // Uniform field strength, h_i = Hmu for all i
     sigma = sigma_; // Random field strength
     // Seed the generator
     std::random_device rd;
@@ -33,16 +34,15 @@ r2_Ising::r2_Ising(int L_, double Ti_, double Tf_, int nT_, double sigma_, std::
     hi.resize(L);
     for (int i = 0; i < L; i++)
     {
-        hi[i] = sigma * rand_norm(gen);
+        hi[i] = sigma * rand_norm(gen) + Hmu;
     }
 
     for (int i = 0; i < L; i++)
     {
         // initialize spins to aline with the field and add a small bias
-        //Spins[i] = (rand_uni(gen) < 0.6)? 1: -1;
+        // Spins[i] = (rand_uni(gen) < 0.6)? 1: -1;
         Spins[i] = 1; // initialize all spins to +1
     }
-
 
     // Initialize interaction matrix Jij (using periodic boundary conditions)
     // Jij[i][j] = 1/(r_eff)^2, where r_eff = min(|i - j|, L - |i - j|)
@@ -66,16 +66,15 @@ r2_Ising::r2_Ising(int L_, double Ti_, double Tf_, int nT_, double sigma_, std::
     // E = 1/2 * sum_ij J(i,j) (s_i^2 + s_j^2 - 2 s_i s_j) - sum_i h_i s_i
     // E = sum_ij J(i,j) (1 - s_i s_j) - sum_i h_i s_i
 
-
     // Sum over pairs i<j for interactions and add the field contributions.
     E_sys = 0.0;
-    for (int i = 0; i < L-1; i++)
+    for (int i = 0; i < L - 1; i++)
     {
         for (int j = i + 1; j < L; j++)
         {
-            E_sys += Jij[i][j] * (1- Spins[i] * Spins[j]);
+            E_sys += Jij[i][j] * (1 - Spins[i] * Spins[j]);
         }
-        E_sys += - hi[i] * Spins[i];
+        E_sys += -hi[i] * Spins[i];
     }
 
     // initilize all replicas
@@ -188,7 +187,7 @@ int r2_Ising::MC_update_cluster()
                 continue;
 
             // Calculate bond probability
-            //p_add = 1.0 - std::exp(-2 * beta * Jij[i][j]);
+            // p_add = 1.0 - std::exp(-2 * beta * Jij[i][j]);
             p_add = 1.0 - std::exp(-2 * beta * Jij[i][j] - 2 * beta * hi[j] * Spins[j]); // H adjusted
 
             if (rand_uni(gen) < p_add)
@@ -399,7 +398,7 @@ observable r2_Ising::measure_observable_replica(int rep)
     return obs;
 }
 
-void r2_Ising::run_parallel_simulation(int N, int M_sweep, std::string folder, std::string finfo, int doswap)
+void r2_Ising::run_parallel_simulation(int N, int M_sweep, int sdetail, std::string folder, std::string finfo, int doswap)
 {
     int numReplicas = beta_replicas.size();
 
@@ -430,7 +429,7 @@ void r2_Ising::run_parallel_simulation(int N, int M_sweep, std::string folder, s
         }
 
         // Attempt replica exchanges among all replicas every 10 sweeps
-        if(doswap && sweep % 10 == 1 )
+        if (doswap && sweep % 10 == 1)
         {
             acceptance_rate_swap += MC_replica_exchange();
         }
@@ -451,11 +450,11 @@ void r2_Ising::run_parallel_simulation(int N, int M_sweep, std::string folder, s
     }
 
     // At the end of the simulation, write the results to files.
-    save_parallel_observable_to_file(folder, finfo, obs_ensemble_replica); // example for one replica
+    save_parallel_observable_to_file(sdetail, folder, finfo, obs_ensemble_replica); // example for one replica
 }
-void r2_Ising::save_parallel_observable_to_file(std::string folder, std::string finfo, std::vector<std::vector<observable>> obs_ensemble_replicas)
+void r2_Ising::save_parallel_observable_to_file(int sdetail, std::string folder, std::string finfo, std::vector<std::vector<observable>> obs_ensemble_replicas)
 {
-    std::string filename = folder + "/parallel_obs_" + finfo + ".txt";
+    std::string filename = folder + "/parallel_obs_" + finfo + ".csv";
     std::ofstream ofs(filename);
     if (!ofs)
     {
@@ -484,16 +483,66 @@ void r2_Ising::save_parallel_observable_to_file(std::string folder, std::string 
     ofs << "\n";
 
     // Write data - each row corresponds to one MC step
-    for (int step = 0; step < numSteps; ++step)
+    if (sdetail)
     {
+        for (int step = 0; step < numSteps; ++step)
+        {
+            for (int rep = 0; rep < numReplicas; ++rep)
+            {
+                ofs << obs_ensemble_replicas[rep][step].m << ","
+                    << obs_ensemble_replicas[rep][step].E;
+                if (rep < numReplicas - 1)
+                    ofs << ",";
+            }
+            ofs << "\n";
+        }
+    }
+    else{
+        std::vector<double> avg_m(numReplicas, 0.0);
+        std::vector<double> std_m(numReplicas, 0.0);
+        std::vector<double> avg_E(numReplicas, 0.0);
+        std::vector<double> std_E(numReplicas, 0.0);
+        // find average
+        for (int step = 0; step < numSteps; ++step)
+        {
+            for (int rep = 0; rep < numReplicas; ++rep)
+            {
+                avg_m[rep] += obs_ensemble_replicas[rep][step].m;
+                avg_E[rep] += obs_ensemble_replicas[rep][step].E;
+            }
+        }
         for (int rep = 0; rep < numReplicas; ++rep)
         {
-            ofs << obs_ensemble_replicas[rep][step].m << ","
-                << obs_ensemble_replicas[rep][step].E;
+            avg_m[rep] /= numSteps;
+            avg_E[rep] /= numSteps;
+        }
+        // find standard deviation
+        for (int step = 0; step < numSteps; ++step)
+        {
+            for (int rep = 0; rep < numReplicas; ++rep)
+            {
+                std_m[rep] += (obs_ensemble_replicas[rep][step].m - avg_m[rep]) * (obs_ensemble_replicas[rep][step].m - avg_m[rep]);
+                std_E[rep] += (obs_ensemble_replicas[rep][step].E - avg_E[rep]) * (obs_ensemble_replicas[rep][step].E - avg_E[rep]);
+            }
+        }
+        for (int rep = 0; rep < numReplicas; ++rep)
+        {
+            std_m[rep] = std::sqrt(std_m[rep] / numSteps);
+            std_E[rep] = std::sqrt(std_E[rep] / numSteps);
+        }
+        for (int rep = 0; rep < numReplicas; ++rep)
+        {
+            ofs << avg_m[rep] << "," << avg_E[rep];
             if (rep < numReplicas - 1)
                 ofs << ",";
         }
         ofs << "\n";
+        for (int rep = 0; rep < numReplicas; ++rep)
+        {
+            ofs << std_m[rep] << "," << std_E[rep];
+            if (rep < numReplicas - 1)
+                ofs << ",";
+        }
     }
 
     ofs.close();

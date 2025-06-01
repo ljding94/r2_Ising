@@ -8,8 +8,8 @@
 #include "r2_Ising.h"
 
 // todo:
-// 1. implement cluster update, form cluster using Wolff
-// 2. implement simulated tempering,
+// 1. [done] implement cluster update, form cluster using Wolff
+// 2. [not useful] implement simulated tempering,
 
 int main(int argc, char const *argv[])
 {
@@ -26,29 +26,36 @@ int main(int argc, char const *argv[])
     int L;
     double Ti, Tf;
     int nT; // number of temperature steps
+    double Hmu;
     double sigma;
-    int run_num;
     std::string method;
     int doswap;
+    int sdetail;
+    int run_num;
+
     // precision run with specified parameters
-    if (argc == 10)
+    if (argc == 12)
     {
         L = std::atoi(argv[1]);        // system size
         Ti = std::atof(argv[2]);       // starting temperature
         Tf = std::atof(argv[3]);       // final temperature
         nT = std::atoi(argv[4]);       // number of temperature steps
-        sigma = std::atof(argv[5]);    // random field strength
-        method = std::string(argv[6]);
-        doswap = std::atoi(argv[7]);
-
-        run_num = std::atoi(argv[8]);
-        folder = std::string(argv[9]);
+        Hmu = std::atof(argv[5]);       // uniform field strength
+        sigma = std::atof(argv[6]);    // random field std
+        method = std::string(argv[7]);
+        doswap = std::atoi(argv[8]);
+        sdetail = std::atoi(argv[9]);
+        run_num = std::atoi(argv[10]);
+        folder = std::string(argv[11]);
         finfo = "L" + std::string(argv[1]) + "_Ti" + std::string(argv[2]) +
                 "_Tf" + std::string(argv[3]) + "_nT" + std::to_string(nT) +
-                "_sigma" + std::string(argv[5]) +
+                "_Hmu" + std::string(argv[5]) +
+                "_sigma" + std::string(argv[6]) +
                 "_method_" + method + "_doswap" + std::to_string(doswap) +
-                "_run_" + std::string(argv[8]);
+                + "_sdetail" + std::to_string(sdetail) +
+                "_run_" + std::string(argv[10]);
     }
+    // TODO: need to fix the code to add uniform field mu
     else
     {
         std::cout << "input error\n";
@@ -56,6 +63,7 @@ int main(int argc, char const *argv[])
     }
     std::cout << "Running simulation for L = " << L << ", Ti = " << Ti
               << ", Tf = " << Tf << ", nT = " << nT
+              << ", Hmu = " << Hmu
               << ", sigma = " << sigma
               << ", method = " << method
               << ", folder = " << folder
@@ -65,10 +73,11 @@ int main(int argc, char const *argv[])
     int M_sweep = 10 * L; // update per sweep
     if (method == "single")
     {
+        N = 1000;
         M_sweep = 10 * L * L;
     }
 
-    r2_Ising r2_ising_1d(L, Ti, Tf, nT, sigma, method); // create an instance of the r2_Ising class
+    r2_Ising r2_ising_1d(L, Ti, Tf, nT, Hmu, sigma, method); // create an instance of the r2_Ising class
 
     if (nT == 1)
     {
@@ -76,7 +85,7 @@ int main(int argc, char const *argv[])
         r2_ising_1d.run_simulation(N, M_sweep, folder, finfo); // run the simulation
         std::cout << "Simulation completed. Results saved in folder: " << folder << "\n";
     } else {
-        r2_ising_1d.run_parallel_simulation(N, M_sweep, folder, finfo, doswap);
+        r2_ising_1d.run_parallel_simulation(N, M_sweep, sdetail, folder, finfo, doswap);
         std::cout << "Parallel simulation completed. Results saved in folder: " << folder << "\n";
     }
 
